@@ -168,4 +168,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Loading sessions...'), findsNothing);
   });
+
+  testWidgets(
+    'bottom navigation switches between Sessions, Learn, Mentor, and Account',
+    (tester) async {
+      final backend = backendWithSessions();
+      await pumpList(tester, backend);
+
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.text('Sessions'), findsOneWidget);
+      expect(find.text('Learn'), findsOneWidget);
+      expect(find.text('Mentor'), findsOneWidget);
+      expect(find.text('Account'), findsOneWidget);
+
+      // 1. Tap Learn
+      await tester.tap(find.text('Learn'));
+      await tester.pumpAndSettle();
+      expect(find.text('DoubtQueue Learn'), findsOneWidget);
+
+      // 2. Tap Mentor
+      await tester.tap(find.text('Mentor'));
+      await tester.pumpAndSettle();
+      expect(find.text('Mentor dashboard'), findsOneWidget);
+
+      // 3. Tap Account
+      await tester.tap(find.text('Account'));
+      await tester.pumpAndSettle();
+      expect(find.text('Learning & Doubts Overview'), findsOneWidget);
+
+      // 4. Tap Sessions to return
+      await tester.tap(find.text('Sessions'));
+      await tester.pumpAndSettle();
+      expect(find.text('PHP Basics Doubt Session'), findsOneWidget);
+    },
+  );
 }

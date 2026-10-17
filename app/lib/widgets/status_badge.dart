@@ -19,60 +19,60 @@ class StatusStyle {
 StatusStyle statusStyleFor(String status) {
   switch (status) {
     case 'WAITING':
-      return StatusStyle(
+      return const StatusStyle(
         label: 'Waiting',
-        icon: Icons.hourglass_top,
-        accent: Colors.blueGrey.shade600,
-        background: Colors.blueGrey.shade50,
-        text: Colors.blueGrey.shade800,
+        icon: Icons.hourglass_top_rounded,
+        accent: Color(0xFF0284C7),
+        background: Color(0xFFF0F9FF),
+        text: Color(0xFF0369A1),
       );
     case 'IN_PROGRESS':
-      return StatusStyle(
+      return const StatusStyle(
         label: 'In progress',
-        icon: Icons.play_circle_outline,
-        accent: Colors.amber.shade800,
-        background: Colors.amber.shade50,
-        text: const Color(0xFF6B4500),
+        icon: Icons.play_circle_fill_rounded,
+        accent: Color(0xFFD97706),
+        background: Color(0xFFFFFBEB),
+        text: Color(0xFFB45309),
       );
     case 'SOLVED':
-      return StatusStyle(
+      return const StatusStyle(
         label: 'Solved',
-        icon: Icons.check_circle_outline,
-        accent: Colors.green.shade600,
-        background: Colors.green.shade50,
-        text: Colors.green.shade900,
+        icon: Icons.check_circle_rounded,
+        accent: Color(0xFF059669),
+        background: Color(0xFFECFDF5),
+        text: Color(0xFF047857),
       );
     case 'SKIPPED':
-      return StatusStyle(
+      return const StatusStyle(
         label: 'Skipped',
-        icon: Icons.skip_next,
-        accent: Colors.grey.shade600,
-        background: Colors.grey.shade200,
-        text: Colors.grey.shade800,
+        icon: Icons.skip_next_rounded,
+        accent: Color(0xFF64748B),
+        background: Color(0xFFF1F5F9),
+        text: Color(0xFF475569),
       );
     case 'CLOSED':
-      return StatusStyle(
+      return const StatusStyle(
         label: 'Closed',
-        icon: Icons.lock_outline,
-        accent: Colors.red.shade600,
-        background: Colors.red.shade50,
-        text: Colors.red.shade900,
+        icon: Icons.lock_outline_rounded,
+        accent: Color(0xFFE11D48),
+        background: Color(0xFFFFF1F2),
+        text: Color(0xFFBE123C),
       );
     case 'OPEN':
-      return StatusStyle(
+      return const StatusStyle(
         label: 'Open',
-        icon: Icons.radio_button_checked,
-        accent: Colors.teal.shade600,
-        background: Colors.teal.shade50,
-        text: Colors.teal.shade900,
+        icon: Icons.fiber_manual_record_rounded,
+        accent: Color(0xFF059669),
+        background: Color(0xFFECFDF5),
+        text: Color(0xFF047857),
       );
     default:
       return StatusStyle(
         label: status,
-        icon: Icons.help_outline,
-        accent: Colors.grey.shade600,
-        background: Colors.grey.shade200,
-        text: Colors.grey.shade800,
+        icon: Icons.help_outline_rounded,
+        accent: const Color(0xFF64748B),
+        background: const Color(0xFFF1F5F9),
+        text: const Color(0xFF475569),
       );
   }
 }
@@ -91,16 +91,23 @@ class StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: style.background,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: style.accent.withValues(alpha: 0.25),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(style.icon, size: 16, color: style.text),
-          const SizedBox(width: 6),
+          Icon(style.icon, size: 14, color: style.accent),
+          const SizedBox(width: 5),
           Text(
             style.label,
-            style: Theme.of(context).textTheme.labelMedium
-                ?.copyWith(color: style.text, fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: style.text,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
           ),
         ],
       ),

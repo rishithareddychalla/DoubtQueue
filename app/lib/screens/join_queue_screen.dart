@@ -1,18 +1,29 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../learn/services/learn_service.dart';
+import '../models/doubt.dart';
 import '../models/session.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/content_width.dart';
+import '../widgets/solution_suggestions_card.dart';
 import '../widgets/state_views.dart';
 import '../widgets/status_badge.dart';
 import 'my_doubt_screen.dart';
 
 class JoinQueueScreen extends StatefulWidget {
-  const JoinQueueScreen({super.key, required this.api, required this.session});
+  JoinQueueScreen({
+    super.key,
+    required this.api,
+    required this.session,
+    LearnService? learnService,
+  }) : learnService = learnService ?? LearnService();
 
   final ApiService api;
   final Session session;
+  final LearnService learnService;
 
   @override
   State<JoinQueueScreen> createState() => _JoinQueueScreenState();
@@ -24,16 +35,77 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
   final _email = TextEditingController();
   final _topic = TextEditingController();
   final _question = TextEditingController();
+  List<Doubt> _suggestions = [];
+  Timer? _debounceTimer;
   bool _submitting = false;
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _topic.addListener(_onSearchChanged);
+    _question.addListener(_onSearchChanged);
+  }
+
+  @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _topic.removeListener(_onSearchChanged);
+    _question.removeListener(_onSearchChanged);
     _name.dispose();
     _email.dispose();
     _topic.dispose();
     _question.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(
+      const Duration(milliseconds: 350),
+      _fetchSuggestions,
+    );
+  }
+
+  Future<void> _fetchSuggestions() async {
+    final topic = _topic.text.trim();
+    final question = _question.text.trim();
+    final query = topic.isNotEmpty && question.isNotEmpty
+        ? '$topic $question'
+        : (topic.isNotEmpty ? topic : question);
+
+    if (query.length < 2) {
+      if (_suggestions.isNotEmpty && mounted) {
+        setState(() => _suggestions = []);
+      }
+      return;
+    }
+
+    try {
+      final results = await widget.api.searchSolvedDoubts(query);
+      if (!mounted) return;
+      setState(() => _suggestions = results);
+    } catch (_) {
+      // Non-blocking background suggestion lookup
+    }
+  }
+
+  void _selfResolved() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Great! Glad you found an answer to your doubt.'),
+      ),
+    );
+    Navigator.pop(context);
+  }
+
+  Future<void> _bookmarkSuggestion(Doubt d) async {
+    await widget.learnService.bookmark(d);
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saved to Knowledge Library!')),
+    );
   }
 
   Future<void> _submit() async {
@@ -56,7 +128,11 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
       await Navigator.pushReplacement(
         context,
         MaterialPageRoute<void>(
-          builder: (_) => MyDoubtScreen(api: widget.api, doubt: doubt),
+          builder: (_) => MyDoubtScreen(
+            api: widget.api,
+            doubt: doubt,
+            learnService: widget.learnService,
+          ),
         ),
       );
     } on ApiException catch (e) {
@@ -94,6 +170,16 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
             _SessionSummary(session: widget.session),
             const SizedBox(height: sectionGap),
             _buildFormCard(),
+            if (_suggestions.isNotEmpty) ...[
+              const SizedBox(height: itemGap),
+              SolutionSuggestionsCard(
+                suggestions: _suggestions,
+                onSolvedSelf: _selfResolved,
+                onBookmark: _bookmarkSuggestion,
+                isBookmarked: (d) => widget.learnService.isBookmarked(d.id),
+              ),
+            ],
+
             if (_error != null) ...[
               const SizedBox(height: itemGap),
               ErrorBanner(message: _error!),
@@ -132,6 +218,13 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _name,
+                maxLength: 255,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
                 decoration: const InputDecoration(
                   labelText: 'Name',
                   prefixIcon: Icon(Icons.person_outline),
@@ -142,6 +235,13 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _email,
+                maxLength: 255,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
                 decoration: const InputDecoration(
                   labelText: 'Email',
                   prefixIcon: Icon(Icons.mail_outline),
@@ -153,6 +253,13 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _topic,
+                maxLength: 255,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
                 decoration: const InputDecoration(
                   labelText: 'Topic',
                   hintText: 'For example: Arrays',
@@ -164,6 +271,13 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _question,
+                maxLength: 2000,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
                 decoration: const InputDecoration(
                   labelText: 'Question',
                   hintText: 'Describe what you need help with',

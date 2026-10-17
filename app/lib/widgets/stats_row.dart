@@ -45,37 +45,60 @@ class _StatCard extends StatelessWidget {
     final theme = Theme.of(context);
     final style = statusStyleFor(status);
 
-    return Card(
-      color: style.background,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(style.icon, size: 18, color: style.text),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    style.label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: style.text,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '$count',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: style.text,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: style.accent.withValues(alpha: 0.25),
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: style.background,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(style.icon, size: 16, color: style.accent),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  style.label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$count',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: const Color(0xFF0F172A),
+              fontWeight: FontWeight.w800,
+              fontSize: 26,
+            ),
+          ),
+        ],
       ),
     );
   }

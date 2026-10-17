@@ -22,11 +22,15 @@ Future<void> pumpMentor(WidgetTester tester, FakeBackend backend) async {
 }
 
 Future<void> selectSession(WidgetTester tester) async {
+  await tester.tap(find.text('Session & Stats'));
+  await tester.pumpAndSettle();
   await tester.tap(find.byType(DropdownButton<int>));
   await tester.pumpAndSettle();
   await tester.tap(
     find.textContaining('PHP Basics Doubt Session (Priya)').last,
   );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Queue'));
   await tester.pumpAndSettle();
 }
 
@@ -53,6 +57,8 @@ void main() {
     backend.failRequests = false;
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Session & Stats'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Start a session'), findsOneWidget);
   });
@@ -65,13 +71,19 @@ void main() {
     await pumpMentor(tester, backend);
 
     await selectSession(tester);
+    await tester.tap(find.text('Session & Stats'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Statistics'), findsOneWidget);
     expect(find.text('Waiting'), findsWidgets);
+    expect(find.text('1'), findsWidgets);
+
+    await tester.tap(find.text('Queue'));
+    await tester.pumpAndSettle();
+
     expect(find.text('2 waiting'), findsOneWidget);
     expect(find.text('Asha'), findsOneWidget);
     expect(find.text('Ben'), findsOneWidget);
-    expect(find.text('1'), findsWidgets);
     expect(find.text('No doubt is currently in progress.'), findsOneWidget);
   });
 
@@ -139,6 +151,8 @@ void main() {
     final backend = backendWithQueue();
     await pumpMentor(tester, backend);
     await selectSession(tester);
+    await tester.tap(find.text('Session & Stats'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Close session'));
     await tester.pumpAndSettle();
@@ -175,6 +189,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(backend.sessions, hasLength(1));
+    await tester.tap(find.text('Session & Stats'));
+    await tester.pumpAndSettle();
     expect(find.text('Session created. It is selected below.'), findsOneWidget);
     expect(find.text('Statistics'), findsOneWidget);
     expect(find.text('Dart Basics (Meera)'), findsOneWidget);
@@ -192,5 +208,75 @@ void main() {
 
     expect(find.text('Ben'), findsOneWidget);
     expect(find.text('2 waiting'), findsOneWidget);
+  });
+
+  testWidgets('restores in-progress doubt when session is loaded', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    final doubt = backend.addDoubt(1, 'Asha', status: 'IN_PROGRESS');
+    doubt['started_at'] = '2026-01-01 10:15:00';
+
+    await pumpMentor(tester, backend);
+    await selectSession(tester);
+
+    expect(find.text('asha@example.com'), findsOneWidget);
+    expect(find.text('Mark solved'), findsOneWidget);
+    expect(find.text('No doubt is currently in progress.'), findsNothing);
+  });
+
+  testWidgets('mentor can attach resolution notes when marking solved', (
+    tester,
+  ) async {
+    final backend = backendWithQueue();
+    await pumpMentor(tester, backend);
+    await selectSession(tester);
+
+    await tester.tap(find.text('Take next student'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Resolution notes (optional)'),
+      'Explain that arrays use integer indices.',
+    );
+    await tester.tap(find.text('Mark solved'));
+    await tester.pumpAndSettle();
+
+    expect(backend.doubts.first['status'], 'SOLVED');
+    expect(
+      backend.doubts.first['resolution_notes'],
+      'Explain that arrays use integer indices.',
+    );
+  });
+
+  testWidgets('shows topic intelligence and hotspots in session & stats tab', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    final d1 = backend.addDoubt(1, 'Asha', status: 'SOLVED');
+    d1['topic'] = 'Arrays';
+    d1['resolution_notes'] = 'Use foreach loops.';
+
+    final d2 = backend.addDoubt(1, 'Ben', status: 'SKIPPED');
+    d2['topic'] = 'Async';
+
+    final d3 = backend.addDoubt(1, 'Carl', status: 'SKIPPED');
+    d3['topic'] = 'Async';
+
+    await pumpMentor(tester, backend);
+    await selectSession(tester);
+
+    // Switch to Session & Stats tab
+    await tester.tap(find.text('Session & Stats'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Doubt Intelligence'), findsOneWidget);
+    expect(find.text('Doubt Intelligence & Hotspots'), findsOneWidget);
+    expect(find.text('Recurring Topics'), findsOneWidget);
+    expect(find.text('Arrays'), findsWidgets);
+    expect(find.text('Async'), findsWidgets);
+    expect(find.textContaining('Hotspot: "Async"'), findsOneWidget);
+    expect(find.text('Reference Solutions'), findsOneWidget);
+    expect(find.text('Use foreach loops.'), findsOneWidget);
   });
 }

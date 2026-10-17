@@ -79,4 +79,22 @@ void main() {
     expect(doubt.isFinished, isTrue);
     expect(doubt.startedAt, DateTime.utc(2026, 1, 1, 10, 10));
   });
+
+  test('Doubt.fromJson reads sessionStatus and resolutionNotes', () {
+    final doubt = Doubt.fromJson({
+      'id': 12,
+      'session_id': 3,
+      'student_name': 'Chitra',
+      'student_email': 'chitra@example.com',
+      'topic': 'State',
+      'question': 'When to use StatefulWidget?',
+      'status': 'SOLVED',
+      'session_status': 'CLOSED',
+      'resolution_notes': 'Use when UI changes dynamically.',
+    });
+
+    expect(doubt.sessionStatus, 'CLOSED');
+    expect(doubt.isSessionClosed, isTrue);
+    expect(doubt.resolutionNotes, 'Use when UI changes dynamically.');
+  });
 }

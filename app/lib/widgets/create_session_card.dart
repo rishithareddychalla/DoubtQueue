@@ -60,13 +60,55 @@ class _CreateSessionCardState extends State<CreateSessionCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Start a session',
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.add_to_photos_rounded,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Start a session',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0F172A),
+                              ),
+                        ),
+                        Text(
+                          'Create a queue for students to join',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: const Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               TextFormField(
                 controller: _title,
+                maxLength: 255,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
                 decoration: const InputDecoration(
                   labelText: 'Session title',
                   hintText: 'For example: PHP Basics Doubt Session',
@@ -78,6 +120,13 @@ class _CreateSessionCardState extends State<CreateSessionCard> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _mentorName,
+                maxLength: 255,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
                 decoration: const InputDecoration(
                   labelText: 'Mentor name',
                   hintText: 'For example: Priya',

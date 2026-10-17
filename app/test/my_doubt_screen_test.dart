@@ -115,4 +115,44 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('shows mentor resolution notes when available', (tester) async {
+    final backend = await pumpMyDoubt(tester, ahead: 0);
+
+    backend.doubts.last['status'] = 'SOLVED';
+    backend.doubts.last['resolution_notes'] =
+        'Remember that widgets rebuild from scratch.';
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pump();
+
+    expect(find.text('Your doubt has been solved.'), findsOneWidget);
+    expect(find.text('Mentor resolution notes'), findsOneWidget);
+    expect(
+      find.text('Remember that widgets rebuild from scratch.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'shows session closed status and stops polling when session is closed',
+    (tester) async {
+      final backend = await pumpMyDoubt(tester, ahead: 1);
+
+      backend.sessions.first['status'] = 'CLOSED';
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump();
+
+      expect(find.text('Session closed'), findsOneWidget);
+      expect(
+        find.text(
+          'The mentor has ended this session. New questions will not be taken.',
+        ),
+        findsOneWidget,
+      );
+
+      backend.failRequests = true;
+      await tester.pump(const Duration(seconds: 30));
+      expect(find.text('Something went wrong'), findsNothing);
+    },
+  );
 }

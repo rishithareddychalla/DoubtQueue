@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../learn/screens/learn_dashboard_screen.dart';
+import '../learn/services/learn_service.dart';
 import '../models/doubt.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -10,10 +12,16 @@ import '../widgets/queue_status_card.dart';
 import '../widgets/state_views.dart';
 
 class MyDoubtScreen extends StatefulWidget {
-  const MyDoubtScreen({super.key, required this.api, required this.doubt});
+  MyDoubtScreen({
+    super.key,
+    required this.api,
+    required this.doubt,
+    LearnService? learnService,
+  }) : learnService = learnService ?? LearnService();
 
   final ApiService api;
   final Doubt doubt;
+  final LearnService learnService;
 
   @override
   State<MyDoubtScreen> createState() => _MyDoubtScreenState();
@@ -47,7 +55,7 @@ class _MyDoubtScreenState extends State<MyDoubtScreen> {
         _doubt = doubt;
         _error = null;
       });
-      if (doubt.isFinished) {
+      if (doubt.isFinished || doubt.isSessionClosed) {
         _timer?.cancel();
       }
     } on ApiException catch (e) {
@@ -58,12 +66,38 @@ class _MyDoubtScreenState extends State<MyDoubtScreen> {
     setState(() => _refreshing = false);
   }
 
+  Future<void> _bookmarkDoubt() async {
+    await widget.learnService.bookmark(_doubt);
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Saved to Knowledge Library!')),
+    );
+  }
+
+  Future<void> _openLearn() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            LearnDashboardScreen(service: widget.learnService, api: widget.api),
+      ),
+    );
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My doubt'),
         actions: [
+          IconButton(
+            onPressed: _openLearn,
+            icon: const Icon(Icons.auto_stories_outlined),
+            tooltip: 'Open Learn',
+          ),
           IconButton(
             onPressed: _refreshing ? null : _refresh,
             icon: const Icon(Icons.refresh),
@@ -75,11 +109,17 @@ class _MyDoubtScreenState extends State<MyDoubtScreen> {
         child: ListView(
           padding: const EdgeInsets.all(pagePadding),
           children: [
-            QueueStatusCard(doubt: _doubt, refreshing: _refreshing),
+            QueueStatusCard(
+              doubt: _doubt,
+              refreshing: _refreshing,
+              onBookmark: _bookmarkDoubt,
+              isBookmarked: widget.learnService.isBookmarked(_doubt.id),
+            ),
             if (_error != null) ...[
               const SizedBox(height: itemGap),
               ErrorBanner(message: _error!, onRetry: _refresh),
             ],
+
             const SizedBox(height: sectionGap),
             _buildDetails(context),
           ],

@@ -19,6 +19,11 @@ class DoubtController
         return new Response(201, $this->doubts->join($params['id'], $request->body()));
     }
 
+    public function current(Request $request, array $params): Response
+    {
+        return new Response(200, ['doubt' => $this->doubts->current($params['id'])]);
+    }
+
     public function queue(Request $request, array $params): Response
     {
         return new Response(200, $this->doubts->queue($params['id']));
@@ -31,7 +36,23 @@ class DoubtController
 
     public function stats(Request $request, array $params): Response
     {
-        return new Response(200, $this->doubts->stats($params['id']));
+        return new Response(200, $this->doubts->stats((int) $params['id']));
+    }
+
+    public function intelligence(Request $request, array $params): Response
+    {
+        return new Response(200, $this->doubts->intelligence((int) $params['id']));
+    }
+
+
+    public function search(Request $request, array $params): Response
+    {
+        $query = $request->query['q'] ?? '';
+        $sessionId = isset($request->query['session_id']) && is_numeric($request->query['session_id'])
+            ? (int) $request->query['session_id']
+            : null;
+
+        return new Response(200, $this->doubts->searchSolved(is_string($query) ? $query : '', $sessionId));
     }
 
     public function get(Request $request, array $params): Response
@@ -41,7 +62,12 @@ class DoubtController
 
     public function solved(Request $request, array $params): Response
     {
-        return new Response(200, $this->doubts->markSolved($params['id']));
+        $body = $request->body();
+        $notes = isset($body['resolution_notes']) && is_string($body['resolution_notes'])
+            ? $body['resolution_notes']
+            : null;
+
+        return new Response(200, $this->doubts->markSolved($params['id'], $notes));
     }
 
     public function skipped(Request $request, array $params): Response

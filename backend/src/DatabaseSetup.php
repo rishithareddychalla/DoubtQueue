@@ -56,13 +56,13 @@ class DatabaseSetup
         }
 
         $finished = [
-            ['Farah Khan', 'farah@example.com', 'Widgets', 'When do I use StatefulWidget?', 'SOLVED'],
-            ['Gita Menon', 'gita@example.com', 'Layouts', 'How does Expanded work in a Row?', 'SOLVED'],
-            ['Hari Om', 'hari@example.com', 'Async', 'What does await do?', 'SOLVED'],
-            ['Isha Roy', 'isha@example.com', 'Packages', 'How do I add a package?', 'SKIPPED'],
+            ['Farah Khan', 'farah@example.com', 'Widgets', 'When do I use StatefulWidget?', 'SOLVED', 'Use StatefulWidget when the UI needs to update dynamically based on user interaction or state changes (e.g. counters, forms).'],
+            ['Gita Menon', 'gita@example.com', 'Layouts', 'How does Expanded work in a Row?', 'SOLVED', 'Expanded forces a child of a Row, Column, or Flex to fill available space along the main axis.'],
+            ['Hari Om', 'hari@example.com', 'Async', 'What does await do?', 'SOLVED', 'await pauses execution until the Future completes and unwraps the result value.'],
+            ['Isha Roy', 'isha@example.com', 'Packages', 'How do I add a package?', 'SKIPPED', null],
         ];
 
-        foreach ($finished as $i => [$name, $email, $topic, $question, $status]) {
+        foreach ($finished as $i => [$name, $email, $topic, $question, $status, $notes]) {
             $created = $now - 86400 + $i * 300;
             $this->insertDoubt(
                 $closedId,
@@ -73,7 +73,8 @@ class DatabaseSetup
                 $status,
                 $created,
                 $created + 60,
-                $created + 240
+                $created + 240,
+                $notes
             );
         }
 
@@ -99,12 +100,13 @@ class DatabaseSetup
         string $status,
         int $createdAt,
         ?int $startedAt = null,
-        ?int $finishedAt = null
+        ?int $finishedAt = null,
+        ?string $resolutionNotes = null
     ): void {
         $this->pdo->prepare(
             'INSERT INTO doubts
-                (session_id, student_name, student_email, topic, question, status, created_at, started_at, finished_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (session_id, student_name, student_email, topic, question, status, resolution_notes, created_at, started_at, finished_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )->execute([
             $sessionId,
             $name,
@@ -112,6 +114,7 @@ class DatabaseSetup
             $topic,
             $question,
             $status,
+            $resolutionNotes,
             gmdate('Y-m-d H:i:s', $createdAt),
             $startedAt === null ? null : gmdate('Y-m-d H:i:s', $startedAt),
             $finishedAt === null ? null : gmdate('Y-m-d H:i:s', $finishedAt),

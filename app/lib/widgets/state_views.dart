@@ -42,25 +42,39 @@ class EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: theme.colorScheme.outline),
-            const SizedBox(height: 12),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 28, color: colors.primary),
+            ),
+            const SizedBox(height: 14),
             Text(
               title,
-              style: theme.textTheme.titleMedium,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+                letterSpacing: -0.2,
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               message,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: const Color(0xFF64748B),
+                height: 1.4,
               ),
               textAlign: TextAlign.center,
             ),
@@ -84,29 +98,48 @@ class ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 12),
-            Text(
-              'Could not load this page',
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              message,
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: colors.error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 30,
+                color: colors.error,
+              ),
             ),
             const SizedBox(height: 16),
+            Text(
+              'Could not load this page',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF64748B),
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded),
               label: const Text('Try again'),
             ),
           ],

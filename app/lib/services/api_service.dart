@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../config.dart';
 import '../models/doubt.dart';
+import '../models/intelligence.dart';
 import '../models/session.dart';
 
 class ApiException implements Exception {
@@ -83,8 +84,35 @@ class ApiService {
     return Doubt.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<Doubt> markSolved(int doubtId) async {
-    final data = await _send('PATCH', '/api/doubts/$doubtId/solved');
+  Future<Doubt?> getCurrentDoubt(int sessionId) async {
+    final data = await _send('GET', '/api/sessions/$sessionId/current');
+    if (data is Map<String, dynamic> && data['doubt'] != null) {
+      return Doubt.fromJson(data['doubt'] as Map<String, dynamic>);
+    }
+    return null;
+  }
+
+  Future<List<Doubt>> searchSolvedDoubts(String query, {int? sessionId}) async {
+    final sessionParam = sessionId == null ? '' : '&session_id=$sessionId';
+    final data = await _send(
+      'GET',
+      '/api/doubts/search?q=${Uri.encodeQueryComponent(query)}$sessionParam',
+    ) as List<dynamic>;
+    return data
+        .map((item) => Doubt.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<DoubtIntelligence> getIntelligence(int sessionId) async {
+    final data = await _send('GET', '/api/sessions/$sessionId/intelligence');
+    return DoubtIntelligence.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<Doubt> markSolved(int doubtId, {String? resolutionNotes}) async {
+    final body = resolutionNotes == null
+        ? null
+        : {'resolution_notes': resolutionNotes};
+    final data = await _send('PATCH', '/api/doubts/$doubtId/solved', body);
     return Doubt.fromJson(data as Map<String, dynamic>);
   }
 
@@ -107,7 +135,9 @@ class ApiService {
     final http.Response response;
     try {
       response = await http.Response.fromStream(await _client.send(request));
-    } on http.ClientException {
+    } on ApiException {
+      rethrow;
+    } on Exception {
       throw const ApiException(
         'Could not reach the server. Check that the backend is running.',
       );

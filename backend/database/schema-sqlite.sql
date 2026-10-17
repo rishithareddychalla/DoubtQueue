@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS doubts (
     topic TEXT NOT NULL,
     question TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'WAITING',
+    resolution_notes TEXT NULL,
     created_at TEXT NOT NULL,
     started_at TEXT NULL,
     finished_at TEXT NULL,
@@ -22,3 +23,4 @@ CREATE TABLE IF NOT EXISTS doubts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_doubts_session_status ON doubts (session_id, status);
+CREATE INDEX IF NOT EXISTS idx_doubts_status_topic ON doubts (status, topic);

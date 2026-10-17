@@ -92,11 +92,15 @@ void main() {
           height: 3000,
         );
 
+        await tester.tap(find.text('Session & Stats'));
+        await tester.pumpAndSettle();
         await tester.tap(find.byType(DropdownButton<int>));
         await tester.pumpAndSettle();
         await tester.tap(
           find.textContaining('PHP Basics Doubt Session (Priya)').last,
         );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Queue'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Take next student'));
         await tester.pumpAndSettle();

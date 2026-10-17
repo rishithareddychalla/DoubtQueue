@@ -37,6 +37,7 @@ class FakeBackend {
     int sessionId,
     String name, {
     String status = 'WAITING',
+    String? resolutionNotes,
   }) {
     final doubt = {
       'id': doubts.length + 1,
@@ -46,6 +47,7 @@ class FakeBackend {
       'topic': 'Arrays',
       'question': 'How do loops work for $name?',
       'status': status,
+      'resolution_notes': resolutionNotes,
       'created_at': '2026-01-01 10:05:00',
       'started_at': null,
       'finished_at': null,
@@ -63,8 +65,13 @@ class FakeBackend {
   Map<String, dynamic> _withPosition(Map<String, dynamic> doubt) {
     final waiting = _doubtsOf(doubt['session_id'] as int, 'WAITING');
     final isWaiting = doubt['status'] == 'WAITING';
+    final session = sessions.firstWhere(
+      (s) => s['id'] == doubt['session_id'],
+      orElse: () => {'status': 'OPEN'},
+    );
     return {
       ...doubt,
+      'session_status': session['status'],
       'position': isWaiting ? waiting.indexOf(doubt) + 1 : null,
     };
   }
@@ -74,7 +81,7 @@ class FakeBackend {
     return {...session, 'waiting_count': waiting};
   }
 
-  http.Response _json(Object body, [int status = 200]) {
+  http.Response _json(Object? body, [int status = 200]) {
     return http.Response(jsonEncode(body), status);
   }
 
@@ -103,8 +110,55 @@ class FakeBackend {
       return _json(_sessionJson(session), 201);
     }
 
+    if (path == '/api/doubts/search' && method == 'GET') {
+      final query = (request.url.queryParameters['q'] ?? '').toLowerCase();
+      final sessionId = request.url.queryParameters['session_id'];
+      final tokens = query
+          .split(RegExp(r'\s+'))
+          .where((t) => t.length > 1)
+          .toList();
+
+      final matches = doubts
+          .where((d) {
+            if (d['status'] != 'SOLVED') return false;
+            if (sessionId != null && '${d['session_id']}' != sessionId) {
+              return false;
+            }
+            final topic = (d['topic'] as String? ?? '').toLowerCase();
+            final question = (d['question'] as String? ?? '').toLowerCase();
+            final notes = (d['resolution_notes'] as String? ?? '')
+                .toLowerCase();
+            if (tokens.isEmpty) {
+              return topic.contains(query) ||
+                  question.contains(query) ||
+                  notes.contains(query);
+            }
+            return tokens.any(
+              (t) =>
+                  topic.contains(t) ||
+                  question.contains(t) ||
+                  notes.contains(t),
+            );
+          })
+          .map((d) {
+            return {
+              'id': d['id'],
+              'session_id': d['session_id'],
+              'topic': d['topic'],
+              'question': d['question'],
+              'status': d['status'],
+              'resolution_notes': d['resolution_notes'],
+              'similarity_score': 0.85,
+              'created_at': d['created_at'],
+              'finished_at': d['finished_at'],
+            };
+          })
+          .toList();
+      return _json(matches);
+    }
+
     final sessionMatch = RegExp(
-      r'^/api/sessions/(\d+)/(doubts|queue|stats|next|close)$',
+      r'^/api/sessions/(\d+)/(doubts|current|queue|stats|intelligence|next|close)$',
     ).firstMatch(path);
     if (sessionMatch != null) {
       return _handleSession(
@@ -117,7 +171,11 @@ class FakeBackend {
     final doubtMatch = RegExp(r'^/api/doubts/(\d+)(/solved|/skipped)?$')
         .firstMatch(path);
     if (doubtMatch != null) {
-      return _handleDoubt(int.parse(doubtMatch.group(1)!), doubtMatch.group(2));
+      return _handleDoubt(
+        int.parse(doubtMatch.group(1)!),
+        doubtMatch.group(2),
+        request,
+      );
     }
 
     return _json({'status': 404, 'message': 'Route not found'}, 404);
@@ -139,6 +197,11 @@ class FakeBackend {
         doubt['topic'] = body['topic'];
         doubt['question'] = body['question'];
         return _json(_withPosition(doubt), 201);
+      case 'current':
+        final active = _doubtsOf(id, 'IN_PROGRESS');
+        return _json({
+          'doubt': active.isEmpty ? null : _withPosition(active.first),
+        });
       case 'queue':
         return _json(_doubtsOf(id, 'WAITING'));
       case 'stats':
@@ -146,7 +209,94 @@ class FakeBackend {
           for (final s in ['WAITING', 'IN_PROGRESS', 'SOLVED', 'SKIPPED'])
             s: _doubtsOf(id, s).length,
         });
+      case 'intelligence':
+        final sessionDoubts = doubts
+            .where((d) => d['session_id'] == id)
+            .toList();
+        final topicMap = <String, Map<String, dynamic>>{};
+        for (final d in sessionDoubts) {
+          final rawTopic = d['topic'] as String? ?? 'General';
+          final norm = rawTopic.trim().toLowerCase();
+          if (!topicMap.containsKey(norm)) {
+            topicMap[norm] = {
+              'topic': rawTopic,
+              'normalized_topic': norm,
+              'total_doubts': 0,
+              'solved_count': 0,
+              'skipped_count': 0,
+              'waiting_count': 0,
+              'in_progress_count': 0,
+            };
+          }
+          final m = topicMap[norm]!;
+          m['total_doubts'] = (m['total_doubts'] as int) + 1;
+          final status = d['status'] as String? ?? 'WAITING';
+          if (status == 'SOLVED') {
+            m['solved_count'] = (m['solved_count'] as int) + 1;
+          }
+          if (status == 'SKIPPED') {
+            m['skipped_count'] = (m['skipped_count'] as int) + 1;
+          }
+          if (status == 'WAITING') {
+            m['waiting_count'] = (m['waiting_count'] as int) + 1;
+          }
+          if (status == 'IN_PROGRESS') {
+            m['in_progress_count'] = (m['in_progress_count'] as int) + 1;
+          }
+        }
+
+        final recurringTopics = topicMap.values.map((m) {
+          final total = m['total_doubts'] as int;
+          final skipped = m['skipped_count'] as int;
+          final waiting = m['waiting_count'] as int;
+          final unres = (skipped + waiting) / (total == 0 ? 1 : total);
+          final isHotspot =
+              (total >= 2 && (skipped >= 1 || unres >= 0.4)) || skipped >= 2;
+          return {
+            ...m,
+            'unresolved_rate': double.parse(unres.toStringAsFixed(2)),
+            'is_hotspot': isHotspot,
+          };
+        }).toList();
+
+        final hotspots = recurringTopics
+            .where((t) => t['is_hotspot'] == true)
+            .toList();
+        final topSolutions = sessionDoubts
+            .where(
+              (d) =>
+                  d['status'] == 'SOLVED' &&
+                  d['resolution_notes'] != null &&
+                  (d['resolution_notes'] as String).isNotEmpty,
+            )
+            .take(5)
+            .map(
+              (d) => {
+                'id': d['id'],
+                'topic': d['topic'],
+                'question': d['question'],
+                'resolution_notes': d['resolution_notes'],
+              },
+            )
+            .toList();
+
+        return _json({
+          'session_id': id,
+          'session_title': session['title'],
+          'total_topics': recurringTopics.length,
+          'recurring_topics': recurringTopics,
+          'hotspots': hotspots,
+          'top_solutions': topSolutions,
+        });
       case 'next':
+        final active = _doubtsOf(id, 'IN_PROGRESS');
+        if (active.isNotEmpty) {
+          return _json({
+            'status': 400,
+            'message':
+                'Cannot take next doubt while another doubt is in progress',
+          }, 400);
+        }
         final waiting = _doubtsOf(id, 'WAITING');
         if (waiting.isEmpty) {
           return _json({'status': 404, 'message': 'No waiting doubts'}, 404);
@@ -160,9 +310,19 @@ class FakeBackend {
     }
   }
 
-  http.Response _handleDoubt(int id, String? action) {
+  http.Response _handleDoubt(int id, String? action, http.Request request) {
     final doubt = doubts.firstWhere((d) => d['id'] == id);
-    if (action == '/solved') doubt['status'] = 'SOLVED';
+    if (action == '/solved') {
+      doubt['status'] = 'SOLVED';
+      if (request.body.isNotEmpty) {
+        try {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          if (body['resolution_notes'] != null) {
+            doubt['resolution_notes'] = body['resolution_notes'];
+          }
+        } catch (_) {}
+      }
+    }
     if (action == '/skipped') doubt['status'] = 'SKIPPED';
     return _json(_withPosition(doubt));
   }

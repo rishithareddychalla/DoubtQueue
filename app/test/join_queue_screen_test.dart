@@ -92,4 +92,51 @@ void main() {
     expect(find.text('Session with id 1 is closed'), findsOneWidget);
     expect(find.text('Join queue'), findsWidgets);
   });
+
+  testWidgets('suggests similar solved questions and allows self-resolution', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final backend = FakeBackend();
+    backend.addDoubt(
+      1,
+      'Senior Student',
+      status: 'SOLVED',
+      resolutionNotes: r'Use foreach ($array as $key => $val) in PHP.',
+    );
+    final session = Session.fromJson({
+      ...backend.sessions.first,
+      'waiting_count': 0,
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: JoinQueueScreen(api: backend.api, session: session),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(2), 'Arrays');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Similar solved questions found'), findsOneWidget);
+    expect(
+      find.text(r'Use foreach ($array as $key => $val) in PHP.'),
+      findsOneWidget,
+    );
+    expect(find.text('85% match'), findsOneWidget);
+
+    expect(find.text('This solved my doubt!'), findsOneWidget);
+
+    await tester.tap(find.text('This solved my doubt!'));
+    await tester.pump();
+
+    expect(
+      find.text('Great! Glad you found an answer to your doubt.'),
+      findsOneWidget,
+    );
+  });
 }

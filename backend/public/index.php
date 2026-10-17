@@ -39,14 +39,18 @@ try {
     $doubts = new DoubtController($doubtService);
 
     $router = new Router();
+    $router->add('GET', '/', fn () => new Response(200, ['status' => 200, 'message' => 'DoubtQueue API is running']));
     $router->add('POST', '/api/sessions', [$sessions, 'create']);
     $router->add('GET', '/api/sessions', [$sessions, 'list']);
     $router->add('GET', '/api/sessions/{id}', [$sessions, 'get']);
     $router->add('PATCH', '/api/sessions/{id}/close', [$sessions, 'close']);
     $router->add('POST', '/api/sessions/{id}/doubts', [$doubts, 'join']);
+    $router->add('GET', '/api/sessions/{id}/current', [$doubts, 'current']);
     $router->add('GET', '/api/sessions/{id}/queue', [$doubts, 'queue']);
     $router->add('POST', '/api/sessions/{id}/next', [$doubts, 'next']);
     $router->add('GET', '/api/sessions/{id}/stats', [$doubts, 'stats']);
+    $router->add('GET', '/api/sessions/{id}/intelligence', [$doubts, 'intelligence']);
+    $router->add('GET', '/api/doubts/search', [$doubts, 'search']);
     $router->add('GET', '/api/doubts/{id}', [$doubts, 'get']);
     $router->add('PATCH', '/api/doubts/{id}/solved', [$doubts, 'solved']);
     $router->add('PATCH', '/api/doubts/{id}/skipped', [$doubts, 'skipped']);

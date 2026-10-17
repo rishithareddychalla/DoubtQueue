@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../learn/screens/learn_dashboard_screen.dart';
+import '../learn/services/learn_service.dart';
+
 import '../models/session.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -7,13 +10,16 @@ import '../utils/session_filter.dart';
 import '../widgets/content_width.dart';
 import '../widgets/session_card.dart';
 import '../widgets/state_views.dart';
+import 'account_screen.dart';
 import 'join_queue_screen.dart';
 import 'mentor_screen.dart';
 
 class SessionListScreen extends StatefulWidget {
-  const SessionListScreen({super.key, required this.api});
+  SessionListScreen({super.key, required this.api, LearnService? learnService})
+    : learnService = learnService ?? LearnService();
 
   final ApiService api;
+  final LearnService learnService;
 
   @override
   State<SessionListScreen> createState() => _SessionListScreenState();
@@ -27,10 +33,12 @@ class _SessionListScreenState extends State<SessionListScreen> {
   String? _error;
   SessionStatusFilter _statusFilter = SessionStatusFilter.open;
   SessionSort _sort = SessionSort.newest;
+  int _currentTab = 0;
 
   @override
   void initState() {
     super.initState();
+    widget.learnService.load();
     _load();
   }
 
@@ -64,17 +72,14 @@ class _SessionListScreenState extends State<SessionListScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => JoinQueueScreen(api: widget.api, session: session),
+        builder: (_) => JoinQueueScreen(
+          api: widget.api,
+          session: session,
+          learnService: widget.learnService,
+        ),
       ),
     );
-    _load();
-  }
-
-  Future<void> _openMentor() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => MentorScreen(api: widget.api)),
-    );
+    if (!mounted) return;
     _load();
   }
 
@@ -86,6 +91,51 @@ class _SessionListScreenState extends State<SessionListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      body: IndexedStack(
+        index: _currentTab,
+        children: [
+          _buildSessionsScaffold(),
+          LearnDashboardScreen(service: widget.learnService, api: widget.api),
+          MentorScreen(api: widget.api),
+          AccountScreen(api: widget.api, learnService: widget.learnService),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentTab,
+        onDestinationSelected: (index) {
+          setState(() => _currentTab = index);
+          if (index == 0) {
+            _load();
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.forum_outlined),
+            selectedIcon: Icon(Icons.forum_rounded),
+            label: 'Sessions',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.auto_stories_outlined),
+            selectedIcon: Icon(Icons.auto_stories_rounded),
+            label: 'Learn',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school_rounded),
+            label: 'Mentor',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Account',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionsScaffold() {
+    return Scaffold(
       appBar: AppBar(
         title: const Text('DoubtQueue'),
         actions: [
@@ -94,12 +144,6 @@ class _SessionListScreenState extends State<SessionListScreen> {
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
           ),
-          TextButton.icon(
-            onPressed: _openMentor,
-            icon: const Icon(Icons.school_outlined),
-            label: const Text('Mentor'),
-          ),
-          const SizedBox(width: 8),
         ],
       ),
       body: ContentWidth(
