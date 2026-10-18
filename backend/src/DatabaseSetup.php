@@ -15,6 +15,8 @@ class DatabaseSetup
     public function run(): void
     {
         $this->createTables();
+        $this->migrateColumns();
+        $this->seedUsers();
 
         if ($this->isEmpty()) {
             $this->insertSampleData();
@@ -32,10 +34,98 @@ class DatabaseSetup
         }
     }
 
+    public function migrateColumns(): void
+    {
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+        if ($driver === 'sqlite') {
+            $this->migrateSqliteColumns();
+        } else {
+            $this->migrateMysqlColumns();
+        }
+    }
+
+    private function migrateSqliteColumns(): void
+    {
+        $sessionCols = $this->pdo->query("PRAGMA table_info(sessions)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array('mentor_id', $sessionCols, true)) {
+            $this->pdo->exec('ALTER TABLE sessions ADD COLUMN mentor_id INTEGER NULL');
+        }
+
+        $doubtCols = $this->pdo->query("PRAGMA table_info(doubts)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (!in_array('student_id', $doubtCols, true)) {
+            $this->pdo->exec('ALTER TABLE doubts ADD COLUMN student_id INTEGER NULL');
+        }
+    }
+
+    private function migrateMysqlColumns(): void
+    {
+        $stmt = $this->pdo->query("SHOW COLUMNS FROM sessions LIKE 'mentor_id'");
+        if ($stmt->fetch() === false) {
+            $this->pdo->exec('ALTER TABLE sessions ADD COLUMN mentor_id INT UNSIGNED NULL');
+        }
+
+        $stmt = $this->pdo->query("SHOW COLUMNS FROM doubts LIKE 'student_id'");
+        if ($stmt->fetch() === false) {
+            $this->pdo->exec('ALTER TABLE doubts ADD COLUMN student_id INT UNSIGNED NULL');
+        }
+    }
+
+    public function seedUsers(): void
+    {
+        $now = gmdate('Y-m-d H:i:s');
+        $pwdHash = password_hash('Password123!', PASSWORD_BCRYPT);
+
+        // Seed default mentor
+        $stmt = $this->pdo->prepare('SELECT id FROM users WHERE LOWER(email) = ?');
+        $stmt->execute(['mentor@doubtqueue.edu']);
+        $mentor = $stmt->fetch();
+        if ($mentor === false) {
+            $this->pdo->prepare(
+                'INSERT INTO users (name, email, password_hash, role, status, department, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            )->execute(['Priya Sharma', 'mentor@doubtqueue.edu', $pwdHash, 'MENTOR', 'ACTIVE', 'Computer Science & Engineering', $now]);
+            $mentorId = (int) $this->pdo->lastInsertId();
+        } else {
+            $mentorId = (int) $mentor['id'];
+        }
+
+        // Seed default student
+        $stmt->execute(['student@doubtqueue.edu']);
+        $student = $stmt->fetch();
+        if ($student === false) {
+            $this->pdo->prepare(
+                'INSERT INTO users (name, email, password_hash, role, status, department, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            )->execute(['Arjun Sharma', 'student@doubtqueue.edu', $pwdHash, 'STUDENT', 'ACTIVE', 'Computer Science & Engineering', $now]);
+            $studentId = (int) $this->pdo->lastInsertId();
+        } else {
+            $studentId = (int) $student['id'];
+        }
+
+        // Also ensure arjun.sharma@doubtqueue.edu alias exists
+        $stmt->execute(['arjun.sharma@doubtqueue.edu']);
+        if ($stmt->fetch() === false) {
+            $this->pdo->prepare(
+                'INSERT INTO users (name, email, password_hash, role, status, department, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            )->execute(['Arjun Sharma', 'arjun.sharma@doubtqueue.edu', $pwdHash, 'STUDENT', 'ACTIVE', 'Computer Science & Engineering', $now]);
+        }
+
+        // Link legacy sessions with null mentor_id to mentor
+        $this->pdo->prepare('UPDATE sessions SET mentor_id = ? WHERE mentor_id IS NULL')
+            ->execute([$mentorId]);
+
+        // Link legacy doubts with null student_id to student
+        $this->pdo->prepare('UPDATE doubts SET student_id = ? WHERE student_id IS NULL')
+            ->execute([$studentId]);
+    }
+
     private function isEmpty(): bool
     {
         return (int) $this->pdo->query('SELECT COUNT(*) FROM sessions')->fetchColumn() === 0;
     }
+
 
     private function insertSampleData(): void
     {

@@ -18,15 +18,17 @@ class DoubtRepository
         string $studentEmail,
         string $topic,
         string $question,
-        string $createdAt
+        string $createdAt,
+        ?int $studentId = null
     ): array {
         $this->pdo->prepare(
-            'INSERT INTO doubts (session_id, student_name, student_email, topic, question, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
-        )->execute([$sessionId, $studentName, $studentEmail, $topic, $question, 'WAITING', $createdAt]);
+            'INSERT INTO doubts (session_id, student_id, student_name, student_email, topic, question, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([$sessionId, $studentId, $studentName, $studentEmail, $topic, $question, 'WAITING', $createdAt]);
 
         return $this->find((int) $this->pdo->lastInsertId());
     }
+
 
     public function find(int $id): ?array
     {
@@ -253,11 +255,35 @@ class DoubtRepository
     }
 
 
+    public function findByStudent(int $studentId, ?string $email = null): array
+    {
+        $sql = 'SELECT d.*, s.status AS session_status, s.title AS session_title, s.mentor_name
+                FROM doubts d
+                JOIN sessions s ON s.id = d.session_id';
+        $params = [];
+
+        if ($email !== null && trim($email) !== '') {
+            $sql .= ' WHERE d.student_id = ? OR LOWER(d.student_email) = ?';
+            $params = [$studentId, mb_strtolower(trim($email))];
+        } else {
+            $sql .= ' WHERE d.student_id = ?';
+            $params = [$studentId];
+        }
+
+        $sql .= ' ORDER BY d.created_at DESC, d.id DESC';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return array_map([$this, 'format'], $stmt->fetchAll());
+    }
+
     private function format(array $row): array
     {
         $row['id'] = (int) $row['id'];
         $row['session_id'] = (int) $row['session_id'];
+        $row['student_id'] = isset($row['student_id']) && $row['student_id'] !== null ? (int) $row['student_id'] : null;
 
         return $row;
     }
 }
+

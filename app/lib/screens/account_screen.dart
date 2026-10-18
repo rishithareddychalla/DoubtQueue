@@ -10,19 +10,24 @@ import '../widgets/confirm_dialog.dart';
 import '../widgets/content_width.dart';
 import '../widgets/section_header.dart';
 
+import '../services/auth_service.dart';
+
 class AccountScreen extends StatefulWidget {
   const AccountScreen({
     super.key,
     required this.api,
     required this.learnService,
+    this.authService,
   });
 
   final ApiService api;
   final LearnService learnService;
+  final AuthService? authService;
 
   @override
   State<AccountScreen> createState() => _AccountScreenState();
 }
+
 
 class _AccountScreenState extends State<AccountScreen> {
   static const _prefLoggedInKey = 'account_is_logged_in';
@@ -58,6 +63,19 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _loadPreferences() async {
+    if (widget.authService?.currentUser != null) {
+      final user = widget.authService!.currentUser!;
+      if (!mounted) return;
+      setState(() {
+        _isLoggedIn = true;
+        _studentName = user.name;
+        _studentEmail = user.email;
+        _department = user.department;
+        _role = user.isMentor ? 'Mentor' : 'Student';
+      });
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       if (!mounted) return;
@@ -75,6 +93,7 @@ class _AccountScreenState extends State<AccountScreen> {
       // In tests or if SharedPreferences is unavailable, keep defaults.
     }
   }
+
 
   Future<void> _savePreferences() async {
     try {
@@ -349,10 +368,15 @@ class _AccountScreenState extends State<AccountScreen> {
     );
     if (!confirmed) return;
 
+    if (widget.authService != null) {
+      await widget.authService!.logout();
+    }
+
     setState(() {
       _isLoggedIn = false;
     });
     await _savePreferences();
+
 
     if (!mounted) return;
     ScaffoldMessenger.of(context)

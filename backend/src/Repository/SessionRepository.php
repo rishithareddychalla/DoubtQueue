@@ -16,11 +16,11 @@ class SessionRepository
     {
     }
 
-    public function create(string $title, string $mentorName, string $status, string $createdAt): array
+    public function create(string $title, string $mentorName, string $status, string $createdAt, ?int $mentorId = null): array
     {
         $this->pdo->prepare(
-            'INSERT INTO sessions (title, mentor_name, status, created_at) VALUES (?, ?, ?, ?)'
-        )->execute([$title, $mentorName, $status, $createdAt]);
+            'INSERT INTO sessions (title, mentor_name, status, created_at, mentor_id) VALUES (?, ?, ?, ?, ?)'
+        )->execute([$title, $mentorName, $status, $createdAt, $mentorId]);
 
         return $this->find((int) $this->pdo->lastInsertId());
     }
@@ -34,14 +34,30 @@ class SessionRepository
         return $row === false ? null : $this->format($row);
     }
 
-    public function findAll(?string $status): array
+    public function findAll(?string $status, ?int $mentorId = null): array
     {
-        if ($status === null) {
-            $stmt = $this->pdo->query(self::SELECT . ' ORDER BY s.created_at DESC, s.id DESC');
-        } else {
-            $stmt = $this->pdo->prepare(self::SELECT . ' WHERE s.status = ? ORDER BY s.created_at DESC, s.id DESC');
-            $stmt->execute([$status]);
+        $sql = self::SELECT;
+        $clauses = [];
+        $params = [];
+
+        if ($status !== null) {
+            $clauses[] = 's.status = ?';
+            $params[] = $status;
         }
+
+        if ($mentorId !== null) {
+            $clauses[] = 's.mentor_id = ?';
+            $params[] = $mentorId;
+        }
+
+        if (!empty($clauses)) {
+            $sql .= ' WHERE ' . implode(' AND ', $clauses);
+        }
+
+        $sql .= ' ORDER BY s.created_at DESC, s.id DESC';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
 
         return array_map([$this, 'format'], $stmt->fetchAll());
     }
@@ -56,7 +72,9 @@ class SessionRepository
     {
         $row['id'] = (int) $row['id'];
         $row['waiting_count'] = (int) $row['waiting_count'];
+        $row['mentor_id'] = isset($row['mentor_id']) && $row['mentor_id'] !== null ? (int) $row['mentor_id'] : null;
 
         return $row;
     }
 }
+

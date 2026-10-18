@@ -9,6 +9,9 @@ class Doubt {
     required this.status,
     this.studentName = '',
     this.studentEmail = '',
+    this.studentId,
+    this.sessionTitle,
+    this.mentorName,
     this.position,
     this.sessionStatus,
     this.resolutionNotes,
@@ -23,6 +26,9 @@ class Doubt {
       sessionId: json['session_id'] as int,
       studentName: (json['student_name'] as String?) ?? '',
       studentEmail: (json['student_email'] as String?) ?? '',
+      studentId: json['student_id'] as int?,
+      sessionTitle: json['session_title'] as String?,
+      mentorName: json['mentor_name'] as String?,
       topic: json['topic'] as String,
       question: json['question'] as String,
       status: json['status'] as String,
@@ -39,6 +45,9 @@ class Doubt {
   final int sessionId;
   final String studentName;
   final String studentEmail;
+  final int? studentId;
+  final String? sessionTitle;
+  final String? mentorName;
   final String topic;
   final String question;
   final String status;
@@ -50,8 +59,12 @@ class Doubt {
   final DateTime? startedAt;
 
   bool get isWaiting => status == 'WAITING';
+  bool get isInProgress => status == 'IN_PROGRESS';
+  bool get isSolved => status == 'SOLVED';
+  bool get isSkipped => status == 'SKIPPED';
   bool get isFinished => status == 'SOLVED' || status == 'SKIPPED';
   bool get isSessionClosed => sessionStatus == 'CLOSED';
 
   int get studentsAhead => position == null ? 0 : position! - 1;
+
 }

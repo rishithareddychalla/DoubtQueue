@@ -11,6 +11,28 @@ class FakeBackend {
 
   final List<Map<String, dynamic>> sessions;
   final List<Map<String, dynamic>> doubts = [];
+  final List<Map<String, dynamic>> users = [
+    {
+      'id': 1,
+      'name': 'Arjun Sharma',
+      'email': 'student@doubtqueue.edu',
+      'password': 'Password123!',
+      'role': 'STUDENT',
+      'department': 'Computer Science & Engineering',
+      'status': 'ACTIVE',
+      'created_at': '2026-01-01 10:00:00',
+    },
+    {
+      'id': 2,
+      'name': 'Priya Sharma',
+      'email': 'mentor@doubtqueue.edu',
+      'password': 'Password123!',
+      'role': 'MENTOR',
+      'department': 'Computer Science & Engineering',
+      'status': 'ACTIVE',
+      'created_at': '2026-01-01 10:00:00',
+    },
+  ];
   bool failRequests = false;
 
   static Map<String, dynamic> openSession(
@@ -93,6 +115,89 @@ class FakeBackend {
     final path = request.url.path;
     final method = request.method;
 
+    if (path == '/api/auth/login' && method == 'POST') {
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      final email = (body['email'] as String? ?? '').trim().toLowerCase();
+      final password = body['password'] as String? ?? '';
+      final portal = body['portal'] as String?;
+
+      final user = users.cast<Map<String, dynamic>?>().firstWhere(
+        (u) => (u?['email'] as String).toLowerCase() == email,
+        orElse: () => null,
+      );
+
+      if (user == null || user['password'] != password) {
+        return _json({'status': 400, 'message': 'Invalid email or password'}, 400);
+      }
+
+      if (portal != null && portal.toUpperCase() != user['role']) {
+        final roleLabel = user['role'] == 'MENTOR' ? 'Mentor' : 'Student';
+        final portalLabel = user['role'] == 'MENTOR' ? 'Mentor Portal' : 'Student Portal';
+        return _json({
+          'status': 403,
+          'message': 'Access denied: This account is registered as a $roleLabel. Please use the $portalLabel.',
+        }, 403);
+      }
+
+      return _json({
+        'token': 'fake_token_${user['id']}',
+        'user': user,
+      });
+    }
+
+    if (path == '/api/auth/register' && method == 'POST') {
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      final email = (body['email'] as String? ?? '').trim().toLowerCase();
+      final role = (body['role'] as String? ?? 'STUDENT').toUpperCase();
+
+      if (role == 'MENTOR') {
+        final secret = body['mentor_secret'] as String? ?? '';
+        if (secret != 'MENTOR_SECRET_2026') {
+          return _json({
+            'status': 400,
+            'message': 'Invalid mentor registration secret key. Mentor accounts require explicit authorization.',
+          }, 400);
+        }
+      }
+
+      if (users.any((u) => (u['email'] as String).toLowerCase() == email)) {
+        return _json({'status': 400, 'message': 'An account with this email address already exists'}, 400);
+      }
+
+      final newUser = {
+        'id': users.length + 1,
+        'name': body['name'] ?? 'User',
+        'email': email,
+        'password': body['password'] ?? 'secret',
+        'role': role,
+        'department': body['department'] ?? 'Computer Science & Engineering',
+        'status': 'ACTIVE',
+        'created_at': '2026-01-01 10:00:00',
+      };
+      users.add(newUser);
+
+      return _json({
+        'token': 'fake_token_${newUser['id']}',
+        'user': newUser,
+      }, 201);
+    }
+
+    if (path == '/api/auth/me' && method == 'GET') {
+      final auth = request.headers['authorization'] ?? '';
+      if (auth.contains('fake_token_2')) {
+        return _json({'user': users[1]});
+      }
+      return _json({'user': users[0]});
+    }
+
+    if (path == '/api/auth/logout' && method == 'POST') {
+      return _json({'message': 'Logged out successfully'});
+    }
+
+    if (path == '/api/doubts/my' && method == 'GET') {
+      return _json(doubts.map(_withPosition).toList());
+    }
+
     if (path == '/api/sessions' && method == 'GET') {
       final status = request.url.queryParameters['status'];
       final list = sessions.where(
@@ -100,6 +205,7 @@ class FakeBackend {
       );
       return _json(list.map(_sessionJson).toList());
     }
+
     if (path == '/api/sessions' && method == 'POST') {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       final session = {

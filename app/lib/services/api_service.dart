@@ -6,11 +6,13 @@ import '../config.dart';
 import '../models/doubt.dart';
 import '../models/intelligence.dart';
 import '../models/session.dart';
+import '../models/user.dart';
 
 class ApiException implements Exception {
-  const ApiException(this.message);
+  const ApiException(this.message, {this.statusCode});
 
   final String message;
+  final int? statusCode;
 
   @override
   String toString() => message;
@@ -21,14 +23,86 @@ class ApiService {
 
   final http.Client _client;
   final String baseUrl;
+  String? _authToken;
 
-  Future<List<Session>> getSessions({String? status}) async {
-    final query = status == null ? '' : '?status=$status';
+  String? get authToken => _authToken;
+
+  void setAuthToken(String? token) {
+    _authToken = token;
+  }
+
+  Future<Map<String, dynamic>> login(
+    String email,
+    String password, {
+    String? portal,
+  }) async {
+    final body = <String, dynamic>{
+      'email': email,
+      'password': password,
+      'portal': ?portal,
+    };
+    final data = await _send('POST', '/api/auth/login', body) as Map<String, dynamic>;
+    if (data['token'] is String) {
+      _authToken = data['token'] as String;
+    }
+    return data;
+  }
+
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+    String? mentorSecret,
+    String? department,
+  }) async {
+    final body = <String, dynamic>{
+      'name': name,
+      'email': email,
+      'password': password,
+      'role': role,
+      if (mentorSecret != null && mentorSecret.isNotEmpty)
+        'mentor_secret': mentorSecret,
+      if (department != null && department.isNotEmpty)
+        'department': department,
+    };
+    final data = await _send('POST', '/api/auth/register', body) as Map<String, dynamic>;
+    if (data['token'] is String) {
+      _authToken = data['token'] as String;
+    }
+    return data;
+  }
+
+  Future<User> getMe() async {
+    final data = await _send('GET', '/api/auth/me') as Map<String, dynamic>;
+    return User.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  Future<void> logout() async {
+    try {
+      await _send('POST', '/api/auth/logout');
+    } catch (_) {}
+    _authToken = null;
+  }
+
+  Future<List<Doubt>> getMyDoubts() async {
+    final data = await _send('GET', '/api/doubts/my') as List<dynamic>;
+    return data
+        .map((item) => Doubt.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<Session>> getSessions({String? status, bool? mine}) async {
+    final params = <String>[];
+    if (status != null) params.add('status=$status');
+    if (mine == true) params.add('mine=true');
+    final query = params.isEmpty ? '' : '?${params.join('&')}';
     final data = await _send('GET', '/api/sessions$query') as List<dynamic>;
     return data
         .map((item) => Session.fromJson(item as Map<String, dynamic>))
         .toList();
   }
+
 
   Future<Session> createSession(String title, String mentorName) async {
     final data = await _send('POST', '/api/sessions', {
@@ -127,6 +201,9 @@ class ApiService {
     Map<String, dynamic>? body,
   ]) async {
     final request = http.Request(method, Uri.parse('$baseUrl$path'));
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $_authToken';
+    }
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
@@ -148,9 +225,10 @@ class ApiService {
       return decoded;
     }
     if (decoded is Map<String, dynamic> && decoded['message'] is String) {
-      throw ApiException(decoded['message'] as String);
+      throw ApiException(decoded['message'] as String, statusCode: response.statusCode);
     }
-    throw ApiException('Request failed with status ${response.statusCode}');
+    throw ApiException('Request failed with status ${response.statusCode}', statusCode: response.statusCode);
+
   }
 
   dynamic _decode(http.Response response) {

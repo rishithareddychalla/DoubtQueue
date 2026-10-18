@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DoubtQueue\Service;
 
+use DoubtQueue\Exception\ForbiddenException;
 use DoubtQueue\Exception\NotFoundException;
 use DoubtQueue\Exception\SessionClosedException;
 use DoubtQueue\Exception\ValidationException;
@@ -24,7 +25,7 @@ class DoubtService
         $this->similarity = $similarity ?? new DoubtSimilarityService();
     }
 
-    public function join(int $sessionId, array $data): array
+    public function join(int $sessionId, array $data, ?array $student = null): array
     {
         $session = $this->findSession($sessionId);
 
@@ -32,7 +33,15 @@ class DoubtService
             throw new SessionClosedException("Session with id $sessionId is closed");
         }
 
-        $email = $this->requiredText($data, 'student_email', 255);
+        if ($student !== null) {
+            $name = $student['name'];
+            $email = $student['email'];
+            $studentId = (int) $student['id'];
+        } else {
+            $name = $this->requiredText($data, 'student_name', 255);
+            $email = $this->requiredText($data, 'student_email', 255);
+            $studentId = isset($data['student_id']) ? (int) $data['student_id'] : null;
+        }
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw new ValidationException('student_email must be a valid email address');
@@ -40,19 +49,44 @@ class DoubtService
 
         $doubt = $this->doubts->save(
             $sessionId,
-            $this->requiredText($data, 'student_name', 255),
+            $name,
             $email,
             $this->requiredText($data, 'topic', 255),
             $this->requiredText($data, 'question', 2000),
-            gmdate('Y-m-d H:i:s')
+            gmdate('Y-m-d H:i:s'),
+            $studentId
         );
 
         return $this->withPosition($doubt);
     }
 
-    public function get(int $id): array
+    public function get(int $id, ?array $user = null): array
     {
-        return $this->withPosition($this->findDoubt($id));
+        $doubt = $this->findDoubt($id);
+
+        if ($user !== null) {
+            if ($user['role'] === 'STUDENT') {
+                $isOwner = ($doubt['student_id'] !== null && $doubt['student_id'] === (int) $user['id'])
+                    || mb_strtolower($doubt['student_email']) === mb_strtolower($user['email']);
+                if (!$isOwner) {
+                    throw new ForbiddenException('You are not authorized to view this doubt');
+                }
+            } elseif ($user['role'] === 'MENTOR') {
+                $session = $this->findSession($doubt['session_id']);
+                if ($session['mentor_id'] !== null && $session['mentor_id'] !== (int) $user['id']) {
+                    throw new ForbiddenException('You are not authorized to view this doubt');
+                }
+            }
+        }
+
+        return $this->withPosition($doubt);
+    }
+
+    public function myDoubts(array $student): array
+    {
+        $list = $this->doubts->findByStudent((int) $student['id'], $student['email']);
+
+        return array_map([$this, 'withPosition'], $list);
     }
 
     public function current(int $sessionId): ?array
@@ -63,16 +97,37 @@ class DoubtService
         return $doubt === null ? null : $this->withPosition($doubt);
     }
 
-    public function queue(int $sessionId): array
+    public function queue(int $sessionId, ?array $user = null): array
     {
         $this->findSession($sessionId);
+        $queue = $this->doubts->findWaiting($sessionId);
 
-        return $this->doubts->findWaiting($sessionId);
+        if ($user !== null && $user['role'] === 'STUDENT') {
+            return array_map(function (array $doubt) use ($user): array {
+                $isOwner = ($doubt['student_id'] !== null && $doubt['student_id'] === (int) $user['id'])
+                    || mb_strtolower($doubt['student_email']) === mb_strtolower($user['email']);
+                if (!$isOwner) {
+                    $doubt['student_email'] = '';
+                }
+                return $doubt;
+            }, $queue);
+        }
+
+        return $queue;
     }
 
-    public function next(int $sessionId): array
+    public function next(int $sessionId, ?array $user = null): array
     {
         $session = $this->findSession($sessionId);
+
+        if ($user !== null) {
+            if ($user['role'] !== 'MENTOR') {
+                throw new ForbiddenException('Only mentors can take the next doubt');
+            }
+            if ($session['mentor_id'] !== null && $session['mentor_id'] !== (int) $user['id']) {
+                throw new ForbiddenException('You are not authorized to manage this session');
+            }
+        }
 
         if ($session['status'] !== SessionStatus::Open->value) {
             throw new SessionClosedException("Session with id $sessionId is closed");
@@ -94,8 +149,28 @@ class DoubtService
         return $this->get($doubt['id']);
     }
 
-    public function markSolved(int $id, ?string $notes = null): array
+    public function markSolved(int $id, ?string $notes = null, ?array $user = null): array
     {
+        $doubt = $this->findDoubt($id);
+
+        if ($user !== null) {
+            if ($user['role'] === 'STUDENT') {
+                $isOwner = ($doubt['student_id'] !== null && $doubt['student_id'] === (int) $user['id'])
+                    || mb_strtolower($doubt['student_email']) === mb_strtolower($user['email']);
+                if (!$isOwner) {
+                    throw new ForbiddenException('You cannot resolve another student\'s doubt');
+                }
+                if ($notes !== null) {
+                    throw new ForbiddenException('Students cannot set mentor resolution notes');
+                }
+            } elseif ($user['role'] === 'MENTOR') {
+                $session = $this->findSession($doubt['session_id']);
+                if ($session['mentor_id'] !== null && $session['mentor_id'] !== (int) $user['id']) {
+                    throw new ForbiddenException('You are not authorized to resolve doubts for this session');
+                }
+            }
+        }
+
         if ($notes !== null) {
             $notes = trim($notes);
             if ($notes === '') {
@@ -108,10 +183,23 @@ class DoubtService
         return $this->finish($id, DoubtStatus::Solved, $notes);
     }
 
-    public function markSkipped(int $id): array
+    public function markSkipped(int $id, ?array $user = null): array
     {
+        $doubt = $this->findDoubt($id);
+
+        if ($user !== null) {
+            if ($user['role'] !== 'MENTOR') {
+                throw new ForbiddenException('Only mentors can skip doubts');
+            }
+            $session = $this->findSession($doubt['session_id']);
+            if ($session['mentor_id'] !== null && $session['mentor_id'] !== (int) $user['id']) {
+                throw new ForbiddenException('You are not authorized to skip doubts for this session');
+            }
+        }
+
         return $this->finish($id, DoubtStatus::Skipped);
     }
+
 
     public function searchSolved(string $query, ?int $sessionId = null): array
     {
@@ -144,10 +232,21 @@ class DoubtService
         return array_map([$this, 'sanitizeSolvedDoubt'], array_slice($ranked, 0, 10));
     }
 
-    public function intelligence(int $sessionId): array
+    public function intelligence(int $sessionId, ?array $user = null): array
     {
         $session = $this->findSession($sessionId);
+
+        if ($user !== null) {
+            if ($user['role'] !== 'MENTOR') {
+                throw new ForbiddenException('Only mentors can view topic intelligence');
+            }
+            if ($session['mentor_id'] !== null && $session['mentor_id'] !== (int) $user['id']) {
+                throw new ForbiddenException('You are not authorized to view intelligence for this session');
+            }
+        }
+
         $topicStats = $this->doubts->getTopicIntelligence($sessionId);
+
 
         $recurringTopics = [];
         $hotspots = [];

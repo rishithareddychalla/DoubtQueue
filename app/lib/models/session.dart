@@ -7,6 +7,7 @@ class Session {
     required this.mentorName,
     required this.status,
     required this.waitingCount,
+    this.mentorId,
     this.createdAt,
     this.closedAt,
   });
@@ -14,6 +15,7 @@ class Session {
   factory Session.fromJson(Map<String, dynamic> json) {
     return Session(
       id: json['id'] as int,
+      mentorId: json['mentor_id'] as int?,
       title: json['title'] as String,
       mentorName: json['mentor_name'] as String,
       status: json['status'] as String,
@@ -24,6 +26,7 @@ class Session {
   }
 
   final int id;
+  final int? mentorId;
   final String title;
   final String mentorName;
   final String status;
@@ -32,4 +35,5 @@ class Session {
   final DateTime? closedAt;
 
   bool get isOpen => status == 'OPEN';
+
 }

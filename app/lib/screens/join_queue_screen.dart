@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../learn/services/learn_service.dart';
 import '../models/doubt.dart';
@@ -45,7 +46,24 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
     super.initState();
     _topic.addListener(_onSearchChanged);
     _question.addListener(_onSearchChanged);
+    _prefillUser();
   }
+
+  Future<void> _prefillUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final remember = prefs.getBool('account_remember_details') ?? true;
+      if (remember) {
+        final name = prefs.getString('auth_user_name') ?? prefs.getString('account_student_name');
+        final email = prefs.getString('auth_user_email') ?? prefs.getString('account_student_email');
+        if (mounted) {
+          if (name != null && _name.text.isEmpty) setState(() => _name.text = name);
+          if (email != null && _email.text.isEmpty) setState(() => _email.text = email);
+        }
+      }
+    } catch (_) {}
+  }
+
 
   @override
   void dispose() {
