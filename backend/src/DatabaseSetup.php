@@ -29,7 +29,24 @@ class DatabaseSetup
         $file = $driver === 'mysql' ? 'schema-mysql.sql' : 'schema-sqlite.sql';
         $sql = (string) file_get_contents(dirname(__DIR__) . '/database/' . $file);
 
+        $tableStatements = [];
+        $indexStatements = [];
+
         foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
+            if (preg_match('/^CREATE\s+(UNIQUE\s+)?INDEX/i', $statement)) {
+                $indexStatements[] = $statement;
+            } else {
+                $tableStatements[] = $statement;
+            }
+        }
+
+        foreach ($tableStatements as $statement) {
+            $this->pdo->exec($statement);
+        }
+
+        $this->migrateColumns();
+
+        foreach ($indexStatements as $statement) {
             $this->pdo->exec($statement);
         }
     }

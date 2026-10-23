@@ -114,125 +114,217 @@ class _AccountScreenState extends State<AccountScreen> {
     final deptCtrl = TextEditingController(text: _department);
     String selectedRole = _role;
 
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.edit_note_rounded, size: 24),
-              SizedBox(width: 8),
-              Text('Edit Profile'),
-            ],
-          ),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name *',
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Please enter your name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email Address *',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Please enter an email address';
-                      }
-                      if (!val.contains('@') || !val.contains('.')) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: deptCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Department / Major',
-                      prefixIcon: Icon(Icons.school_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Role',
-                      prefixIcon: Icon(Icons.badge_outlined),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Student',
-                        child: Text('Student'),
+        builder: (ctx, setDialogState) {
+          final theme = Theme.of(ctx);
+          final colors = theme.colorScheme;
+          final viewInsets = MediaQuery.of(ctx).viewInsets;
+
+          return Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 540),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + viewInsets.bottom),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFCBD5E1),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
-                      DropdownMenuItem(
-                        value: 'Teaching Assistant',
-                        child: Text('Teaching Assistant'),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.edit_note_rounded,
+                              size: 24,
+                              color: colors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Edit Profile',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 19,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Update your details across DoubtQueue',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.pop(ctx),
+                            tooltip: 'Close',
+                          ),
+                        ],
                       ),
-                      DropdownMenuItem(
-                        value: 'Peer Mentor',
-                        child: Text('Peer Mentor'),
+                      const SizedBox(height: 16),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: nameCtrl,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name *',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please enter your name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Email Address *',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please enter an email address';
+                          }
+                          if (!val.contains('@') || !val.contains('.')) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: deptCtrl,
+                        textInputAction: TextInputAction.done,
+                        decoration: const InputDecoration(
+                          labelText: 'Department / Major',
+                          prefixIcon: Icon(Icons.school_outlined),
+                        ),
+                      ),
+                      Builder(
+                        builder: (context) {
+                          const defaultRoles = [
+                            'Student',
+                            'Mentor',
+                            'Peer Mentor',
+                            'Teaching Assistant',
+                          ];
+                          final roles = defaultRoles.contains(selectedRole)
+                              ? defaultRoles
+                              : [selectedRole, ...defaultRoles];
+
+                          return DropdownButtonFormField<String>(
+                            initialValue: selectedRole,
+                            isExpanded: true,
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Color(0xFF64748B),
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Role',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                            items: roles.map((role) {
+                              return DropdownMenuItem<String>(
+                                value: role,
+                                child: Text(role),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setDialogState(() => selectedRole = val);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: FilledButton.icon(
+                              icon: const Icon(Icons.check_rounded, size: 18),
+                              label: const Text('Save Changes'),
+                              onPressed: () {
+                                if (formKey.currentState?.validate() ?? false) {
+                                  setState(() {
+                                    _studentName = nameCtrl.text.trim();
+                                    _studentEmail = emailCtrl.text.trim();
+                                    _department = deptCtrl.text.trim().isNotEmpty
+                                        ? deptCtrl.text.trim()
+                                        : 'Computer Science & Engineering';
+                                    _role = selectedRole;
+                                  });
+                                  _savePreferences();
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context)
+                                    ..hideCurrentSnackBar()
+                                    ..showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Profile updated successfully.',
+                                        ),
+                                      ),
+                                    );
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() => selectedRole = val);
-                      }
-                    },
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  setState(() {
-                    _studentName = nameCtrl.text.trim();
-                    _studentEmail = emailCtrl.text.trim();
-                    _department = deptCtrl.text.trim().isNotEmpty
-                        ? deptCtrl.text.trim()
-                        : 'Computer Science & Engineering';
-                    _role = selectedRole;
-                  });
-                  _savePreferences();
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                      const SnackBar(
-                        content: Text('Profile updated successfully.'),
-                      ),
-                    );
-                }
-              },
-              child: const Text('Save Changes'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -243,119 +335,198 @@ class _AccountScreenState extends State<AccountScreen> {
     final emailCtrl = TextEditingController(text: _studentEmail);
     final deptCtrl = TextEditingController(text: _department);
 
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.login_rounded, size: 24),
-            SizedBox(width: 8),
-            Text('Sign In to DoubtQueue'),
-          ],
-        ),
-        content: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Enter your student credentials to join queues and track doubts.',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Student Name *',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Name is required';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Student Email *',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Email is required';
-                    }
-                    if (!val.contains('@')) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: deptCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Department / Major',
-                    prefixIcon: Icon(Icons.school_outlined),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final colors = theme.colorScheme;
+        final viewInsets = MediaQuery.of(ctx).viewInsets;
+
+        return Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 540),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + viewInsets.bottom),
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
                     ),
-                    icon: const Icon(Icons.auto_awesome, size: 14),
-                    label: const Text(
-                      'Use Demo Student',
-                      style: TextStyle(fontSize: 12),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: colors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.login_rounded,
+                            size: 24,
+                            color: colors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sign In to DoubtQueue',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 19,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
+                                'Enter your student credentials to join queues',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(ctx),
+                          tooltip: 'Close',
+                        ),
+                      ],
                     ),
-                    onPressed: () {
-                      nameCtrl.text = 'Arjun Sharma';
-                      emailCtrl.text = 'arjun.sharma@doubtqueue.edu';
-                      deptCtrl.text = 'Computer Science & Engineering';
-                    },
-                  ),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: nameCtrl,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Student Name *',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Name is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Student Email *',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Email is required';
+                        }
+                        if (!val.contains('@')) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: deptCtrl,
+                      textInputAction: TextInputAction.done,
+                      decoration: const InputDecoration(
+                        labelText: 'Department / Major',
+                        prefixIcon: Icon(Icons.school_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        icon: const Icon(Icons.auto_awesome, size: 14),
+                        label: const Text(
+                          'Use Demo Student',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        onPressed: () {
+                          nameCtrl.text = 'Arjun Sharma';
+                          emailCtrl.text = 'arjun.sharma@doubtqueue.edu';
+                          deptCtrl.text = 'Computer Science & Engineering';
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton.icon(
+                            icon: const Icon(Icons.login_rounded, size: 18),
+                            label: const Text('Log In'),
+                            onPressed: () {
+                              if (formKey.currentState?.validate() ?? false) {
+                                setState(() {
+                                  _isLoggedIn = true;
+                                  _studentName = nameCtrl.text.trim();
+                                  _studentEmail = emailCtrl.text.trim();
+                                  if (deptCtrl.text.trim().isNotEmpty) {
+                                    _department = deptCtrl.text.trim();
+                                  }
+                                });
+                                _savePreferences();
+                                Navigator.pop(ctx);
+                                ScaffoldMessenger.of(context)
+                                  ..hideCurrentSnackBar()
+                                  ..showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Welcome back, $_studentName!',
+                                      ),
+                                    ),
+                                  );
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() ?? false) {
-                setState(() {
-                  _isLoggedIn = true;
-                  _studentName = nameCtrl.text.trim();
-                  _studentEmail = emailCtrl.text.trim();
-                  if (deptCtrl.text.trim().isNotEmpty) {
-                    _department = deptCtrl.text.trim();
-                  }
-                });
-                _savePreferences();
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    SnackBar(content: Text('Welcome back, $_studentName!')),
-                  );
-              }
-            },
-            child: const Text('Log In'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -425,55 +596,121 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _openAboutProjectDialog() {
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.hub_outlined, color: Color(0xFF0F766E)),
-            SizedBox(width: 8),
-            Text('About DoubtQueue'),
-          ],
-        ),
-        content: const SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DoubtQueue is an open-source peer-to-peer queue management and learning assistant system for university lab sessions and office hours.',
-                style: TextStyle(fontSize: 14, height: 1.4),
-              ),
-              SizedBox(height: 12),
-              Text(
-                'Core Features:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              SizedBox(height: 6),
-              Text('• Real-time doubt registration and mentor dispatch'),
-              Text('• Smart solution suggester with live query similarity'),
-              Text('• Student self-resolution using verified mentor solutions'),
-              Text('• Leitner spaced repetition for long-term retention'),
-              Text('• Local-first knowledge library and personal notes'),
-              SizedBox(height: 12),
-              Text(
-                'Architecture:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              SizedBox(height: 6),
-              Text(
-                '• Frontend: Flutter 3 (Cross-platform Desktop, Web, Mobile)',
-              ),
-              Text('• Backend: PHP 8.2 + MySQL / MariaDB REST API'),
-            ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 540),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.hub_outlined,
+                        color: Color(0xFF0F766E),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'About DoubtQueue',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 19,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Architecture & open source overview',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                      tooltip: 'Close',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                const Text(
+                  'DoubtQueue is an open-source peer-to-peer queue management and learning assistant system for university lab sessions and office hours.',
+                  style: TextStyle(fontSize: 14, height: 1.45),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Core Features:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                const Text('• Real-time doubt registration and mentor dispatch'),
+                const SizedBox(height: 4),
+                const Text('• Smart solution suggester with live query similarity'),
+                const SizedBox(height: 4),
+                const Text('• Student self-resolution using verified mentor solutions'),
+                const SizedBox(height: 4),
+                const Text('• Leitner spaced repetition for long-term retention'),
+                const SizedBox(height: 4),
+                const Text('• Local-first knowledge library and personal notes'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Architecture:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                const Text('• Frontend: Flutter 3 (Cross-platform Desktop, Web, Mobile)'),
+                const SizedBox(height: 4),
+                const Text('• Backend: PHP 8.2 + MySQL / MariaDB REST API'),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Close'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -674,7 +911,7 @@ class _AccountScreenState extends State<AccountScreen> {
             // About Section
             const SectionHeader(
               title: 'About DoubtQueue',
-              subtitle: 'Application details, backend status, and licenses',
+              subtitle: 'Application details and backend status',
             ),
             const SizedBox(height: itemGap),
             Card(
@@ -767,23 +1004,6 @@ class _AccountScreenState extends State<AccountScreen> {
                       size: 14,
                     ),
                     onTap: _openAboutProjectDialog,
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: const Text('Open Source Licenses'),
-                    subtitle: const Text('View software credits and licenses'),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                    ),
-                    onTap: () {
-                      showLicensePage(
-                        context: context,
-                        applicationName: 'DoubtQueue',
-                        applicationVersion: '1.0.0',
-                      );
-                    },
                   ),
                 ],
               ),

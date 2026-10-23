@@ -58,7 +58,6 @@ void main() {
     expect(find.text('Backend API Server'), findsOneWidget);
     expect(find.text('Test'), findsOneWidget);
     expect(find.text('Project Overview'), findsOneWidget);
-    expect(find.text('Open Source Licenses'), findsOneWidget);
   });
 
   testWidgets('edit profile updates student name, email and role', (
@@ -220,4 +219,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Core Features:'), findsNothing);
   });
+
+  testWidgets(
+    'edit profile works when user is mentor without dropdown assertion error',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({'account_role': 'Mentor'});
+      final fakeBackend = FakeBackend();
+      final learnService = LearnService(storage: MemoryLearnStorage());
+      await learnService.load();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AccountScreen(api: fakeBackend.api, learnService: learnService),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Edit Profile'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Save Changes'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    },
+  );
 }

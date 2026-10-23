@@ -288,33 +288,36 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         const SizedBox(height: itemGap),
         Row(
           children: [
-            Wrap(
-              spacing: 8,
-              children: [
-                FilterChip(
-                  label: const Text('Open'),
-                  selected: _statusFilter == SessionStatusFilter.open,
-                  onSelected: (val) {
-                    if (val) setState(() => _statusFilter = SessionStatusFilter.open);
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Closed'),
-                  selected: _statusFilter == SessionStatusFilter.closed,
-                  onSelected: (val) {
-                    if (val) setState(() => _statusFilter = SessionStatusFilter.closed);
-                  },
-                ),
-                FilterChip(
-                  label: const Text('All'),
-                  selected: _statusFilter == SessionStatusFilter.all,
-                  onSelected: (val) {
-                    if (val) setState(() => _statusFilter = SessionStatusFilter.all);
-                  },
-                ),
-              ],
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  FilterChip(
+                    label: const Text('Open'),
+                    selected: _statusFilter == SessionStatusFilter.open,
+                    onSelected: (val) {
+                      if (val) setState(() => _statusFilter = SessionStatusFilter.open);
+                    },
+                  ),
+                  FilterChip(
+                    label: const Text('Closed'),
+                    selected: _statusFilter == SessionStatusFilter.closed,
+                    onSelected: (val) {
+                      if (val) setState(() => _statusFilter = SessionStatusFilter.closed);
+                    },
+                  ),
+                  FilterChip(
+                    label: const Text('All'),
+                    selected: _statusFilter == SessionStatusFilter.all,
+                    onSelected: (val) {
+                      if (val) setState(() => _statusFilter = SessionStatusFilter.all);
+                    },
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 4),
             PopupMenuButton<SessionSort>(
               initialValue: _sort,
               tooltip: 'Sort sessions',
@@ -534,21 +537,25 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     children: [
                       const Icon(Icons.hourglass_top_rounded, size: 16, color: Colors.amber),
                       const SizedBox(width: 6),
-                      Text(
-                        doubt.position != null
-                            ? 'Queue Position: #${doubt.position} (${doubt.studentsAhead} ahead)'
-                            : 'Waiting in queue',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.amber.shade900,
+                      Expanded(
+                        child: Text(
+                          doubt.position != null
+                              ? 'Queue Position: #${doubt.position} (${doubt.studentsAhead} ahead)'
+                              : 'Waiting in queue',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade900,
+                          ),
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 6),
                       TextButton(
                         onPressed: () => _selfResolveDoubt(doubt),
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: const Size(0, 28),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: const Size(0, 26),
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: const Text('Self-resolved?'),
                       ),
@@ -568,11 +575,13 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     children: [
                       const Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Colors.blue),
                       const SizedBox(width: 6),
-                      Text(
-                        'Currently being assisted by mentor!',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade900,
+                      Expanded(
+                        child: Text(
+                          'Currently being assisted by mentor!',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade900,
+                          ),
                         ),
                       ),
                     ],
@@ -595,11 +604,13 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                         children: [
                           const Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
                           const SizedBox(width: 6),
-                          Text(
-                            'Mentor Resolution Notes:',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green.shade900,
+                          Expanded(
+                            child: Text(
+                              'Mentor Resolution Notes:',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade900,
+                              ),
                             ),
                           ),
                         ],
@@ -619,15 +630,18 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    doubt.createdAt != null
-                        ? 'Asked ${timeAgo(doubt.createdAt)}'
-                        : '',
-
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade500,
+                  Expanded(
+                    child: Text(
+                      doubt.createdAt != null
+                          ? 'Asked ${timeAgo(doubt.createdAt)}'
+                          : '',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     'Tap to view tracking >',
                     style: theme.textTheme.bodySmall?.copyWith(

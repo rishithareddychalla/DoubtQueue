@@ -1,11 +1,17 @@
+import 'package:doubtqueue/learn/services/learn_service.dart';
+import 'package:doubtqueue/learn/storage/memory_learn_storage.dart';
 import 'package:doubtqueue/models/doubt.dart';
 import 'package:doubtqueue/models/session.dart';
+import 'package:doubtqueue/models/user.dart';
 import 'package:doubtqueue/screens/join_queue_screen.dart';
 import 'package:doubtqueue/screens/mentor_screen.dart';
 import 'package:doubtqueue/screens/my_doubt_screen.dart';
 import 'package:doubtqueue/screens/session_list_screen.dart';
+import 'package:doubtqueue/screens/student_portal_screen.dart';
+import 'package:doubtqueue/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_backend.dart';
 
@@ -81,6 +87,36 @@ void main() {
         );
 
         expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      });
+
+      testWidgets('student portal doubts tab fits', (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final backend = busyBackend();
+        final auth = AuthService(api: backend.api);
+        await auth.init();
+        await auth.login(
+          email: 'student@doubtqueue.edu',
+          password: 'Password123!',
+          portalRole: UserRole.student,
+        );
+        final learnService = LearnService(storage: MemoryLearnStorage());
+        await learnService.load();
+
+        await pumpAtWidth(
+          tester,
+          width,
+          StudentPortalScreen(
+            api: backend.api,
+            authService: auth,
+            learnService: learnService,
+            initialTab: 1,
+          ),
+          height: 1200,
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('My Doubts & Queue Status'), findsOneWidget);
         await tester.pumpWidget(const SizedBox());
       });
 
